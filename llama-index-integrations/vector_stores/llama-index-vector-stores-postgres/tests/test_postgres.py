@@ -109,6 +109,22 @@ def pg(db: None) -> Any:
 
 
 @pytest.fixture()
+def pg_custom_table_name_prefix(db: None) -> Any:
+    pg = PGVectorStore.from_params(
+        **PARAMS,  # type: ignore
+        database=TEST_DB,
+        table_name=TEST_TABLE_NAME,
+        schema_name=TEST_SCHEMA_NAME,
+        embed_dim=TEST_EMBED_DIM,
+        table_name_prefix="custom_prefix",
+    )
+
+    yield pg
+
+    asyncio.run(pg.close())
+
+
+@pytest.fixture()
 def pg_hybrid(db: None) -> Any:
     pg = PGVectorStore.from_params(
         **PARAMS,  # type: ignore
@@ -365,12 +381,30 @@ async def test_instance_creation(db: None) -> None:
     await pg.close()
 
 
+@pytest.mark.skipif(postgres_not_available, reason="postgres db is not available")
+@pytest.mark.asyncio
+async def test_instance_creation_custom_prefix(db: None) -> None:
+    pg = PGVectorStore.from_params(
+        **PARAMS,  # type: ignore
+        database=TEST_DB,
+        table_name=TEST_TABLE_NAME,
+        schema_name=TEST_SCHEMA_NAME,
+        table_name_prefix="custom_prefix",
+    )
+    assert isinstance(pg, PGVectorStore)
+
+    assert pg.client is None
+    await pg.close()
+
+
 @pytest.fixture()
 def pg_fixture(request):
     if request.param == "pg":
         return request.getfixturevalue("pg")
     elif request.param == "pg_halfvec":
         return request.getfixturevalue("pg_halfvec")
+    elif request.param == "pg_custom_table_name_prefix":
+        return request.getfixturevalue("pg_custom_table_name_prefix")
     else:
         raise ValueError(f"Unknown param: {request.param}")
 
@@ -388,6 +422,32 @@ async def test_add_to_db_and_query(
         pg_fixture.add(node_embeddings)
     assert isinstance(pg_fixture, PGVectorStore)
     assert hasattr(pg_fixture, "_engine")
+    q = VectorStoreQuery(query_embedding=_get_sample_vector(1.0), similarity_top_k=1)
+    if use_async:
+        res = await pg_fixture.aquery(q)
+    else:
+        res = pg_fixture.query(q)
+    assert res.nodes
+    assert len(res.nodes) == 1
+    assert res.nodes[0].node_id == "aaa"
+
+
+@pytest.mark.skipif(postgres_not_available, reason="postgres db is not available")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pg_fixture", ["pg_custom_table_name_prefix"], indirect=True)
+@pytest.mark.parametrize("use_async", [True, False])
+async def test_add_to_db_and_query_custom_table_prefix(
+    pg_fixture: PGVectorStore, node_embeddings: List[TextNode], use_async: bool
+) -> None:
+    if use_async:
+        await pg_fixture.async_add(node_embeddings)
+    else:
+        pg_fixture.add(node_embeddings)
+    assert isinstance(pg_fixture, PGVectorStore)
+    assert hasattr(pg_fixture, "_engine")
+    assert hasattr(pg_fixture, "table_name_prefix")
+    assert pg_fixture.table_name_prefix == "custom_prefix"
+
     q = VectorStoreQuery(query_embedding=_get_sample_vector(1.0), similarity_top_k=1)
     if use_async:
         res = await pg_fixture.aquery(q)

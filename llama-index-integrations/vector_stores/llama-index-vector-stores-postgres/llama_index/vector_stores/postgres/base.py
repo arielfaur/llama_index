@@ -75,6 +75,8 @@ def get_data_model(
     use_jsonb: bool = False,
     use_halfvec: bool = False,
     indexed_metadata_keys: Optional[Set[Tuple[str, PGType]]] = None,
+    table_name_prefix: Optional[str] = "data",
+    class_name_prefix: Optional[str] = "Data",
 ) -> Any:
     """
     This part create a dynamic sqlalchemy model with a new table.
@@ -121,8 +123,8 @@ def get_data_model(
         impl = TSVECTOR
         cache_ok = cache_okay
 
-    tablename = "data_%s" % index_name  # dynamic table name
-    class_name = "Data%s" % index_name  # dynamic class name
+    tablename = f"{table_name_prefix}_{index_name}"  # dynamic table name
+    class_name = f"{class_name_prefix}{index_name}"  # dynamic class name
     indexname = "%s_idx" % index_name  # dynamic class name
 
     metadata_dtype = JSONB if use_jsonb else JSON
@@ -246,6 +248,8 @@ class PGVectorStore(BasePydanticVectorStore):
     create_engine_kwargs: Dict
     initialization_fail_on_error: bool = False
     indexed_metadata_keys: Optional[Set[Tuple[str, PGType]]] = None
+    table_name_prefix: Optional[str] = "data"
+    class_name_prefix: Optional[str] = "Data"
 
     hnsw_kwargs: Optional[Dict[str, Any]]
 
@@ -281,6 +285,8 @@ class PGVectorStore(BasePydanticVectorStore):
         engine: Optional[sqlalchemy.engine.Engine] = None,
         async_engine: Optional[sqlalchemy.ext.asyncio.AsyncEngine] = None,
         indexed_metadata_keys: Optional[Set[Tuple[str, PGType]]] = None,
+        table_name_prefix: Optional[str] = "data",
+        class_name_prefix: Optional[str] = "Data",
     ) -> None:
         """
         Constructor.
@@ -305,6 +311,8 @@ class PGVectorStore(BasePydanticVectorStore):
             engine (Optional[sqlalchemy.engine.Engine], optional): SQLAlchemy engine instance to use. Defaults to None.
             async_engine (Optional[sqlalchemy.ext.asyncio.AsyncEngine], optional): SQLAlchemy async engine instance to use. Defaults to None.
             indexed_metadata_keys (Optional[List[Tuple[str, str]]], optional): Set of metadata keys with their type to index. Defaults to None.
+            table_name_prefix (Optional[str]): Table name prefix. Defaults to "data".
+            class_name_prefix (Optional[str]): Class name prefix. Defaults to "Data"
 
         """
         table_name = table_name.lower() if table_name else "llamaindex"
@@ -335,6 +343,8 @@ class PGVectorStore(BasePydanticVectorStore):
             initialization_fail_on_error=initialization_fail_on_error,
             use_halfvec=use_halfvec,
             indexed_metadata_keys=indexed_metadata_keys,
+            table_name_prefix=table_name_prefix,
+            class_name_prefix=class_name_prefix,
         )
 
         # sqlalchemy model
@@ -350,6 +360,8 @@ class PGVectorStore(BasePydanticVectorStore):
             use_jsonb=use_jsonb,
             use_halfvec=use_halfvec,
             indexed_metadata_keys=indexed_metadata_keys,
+            table_name_prefix=table_name_prefix,
+            class_name_prefix=class_name_prefix,
         )
 
         # both engine and async_engine must be provided, or both must be None
@@ -400,6 +412,8 @@ class PGVectorStore(BasePydanticVectorStore):
         create_engine_kwargs: Optional[Dict[str, Any]] = None,
         use_halfvec: bool = False,
         indexed_metadata_keys: Optional[Set[Tuple[str, PGType]]] = None,
+        table_name_prefix: Optional[str] = "data",
+        class_name_prefix: Optional[str] = "Data",
     ) -> "PGVectorStore":
         """
         Construct from params.
@@ -427,6 +441,9 @@ class PGVectorStore(BasePydanticVectorStore):
             create_engine_kwargs (Optional[Dict[str, Any]], optional): Engine parameters to pass to create_engine. Defaults to None.
             use_halfvec (bool, optional): If `True`, use half-precision vectors. Defaults to False.
             indexed_metadata_keys (Optional[Set[Tuple[str, str]]], optional): Set of metadata keys to index. Defaults to None.
+            table_name_prefix (Optional[str]): Table name prefix. Defaults to "data".
+            class_name_prefix (Optional[str]): Class name prefix. Defaults to "Data"
+
 
         Returns:
             PGVectorStore: Instance of PGVectorStore constructed from params.
@@ -455,6 +472,8 @@ class PGVectorStore(BasePydanticVectorStore):
             create_engine_kwargs=create_engine_kwargs,
             use_halfvec=use_halfvec,
             indexed_metadata_keys=indexed_metadata_keys,
+            table_name_prefix=table_name_prefix,
+            class_name_prefix=class_name_prefix,
         )
 
     @property
